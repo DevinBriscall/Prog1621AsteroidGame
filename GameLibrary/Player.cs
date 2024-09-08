@@ -11,12 +11,14 @@ namespace GameLibrary
 {
     public class Player : GamePiece
     {
+        private static double maxVelocity = 6;
         public double yVelocity; // use this to boost/fall
         public double xVelocity; // right/left movement
 
         public Player(Image img) : base(img)
         {
             yVelocity = 0;
+            xVelocity = 0;
         }
         
 
@@ -32,13 +34,13 @@ namespace GameLibrary
             //increase y velocity
             yVelocity -= boostRate;
             //max out the y velocity
-            if (yVelocity > 3)
+            if (yVelocity > maxVelocity)
             {
-                yVelocity = 3;
+                yVelocity = maxVelocity;
             }
-            else if (yVelocity < -3) 
+            else if (yVelocity < -maxVelocity) 
             { 
-                yVelocity = -3;
+                yVelocity = -maxVelocity;
             }
         }
 
@@ -47,21 +49,21 @@ namespace GameLibrary
             switch (direction)
             {
                 case Windows.System.VirtualKey.Left:
-                    xVelocity -= .15;
+                    xVelocity -= .5;
                     break;
                 case Windows.System.VirtualKey.Right:
-                    xVelocity += .15;
+                    xVelocity += .5;
                     break;
                 default:
                     return false;
             }
             //max out the x velocity
-            if(xVelocity > 3)
+            if(xVelocity > maxVelocity)
             {
-                xVelocity = 3;
+                xVelocity = maxVelocity;
             }
-            else if(xVelocity < -3) { 
-                xVelocity = -3;
+            else if(xVelocity < -maxVelocity) { 
+                xVelocity = -maxVelocity;
             }
             return true;
         }

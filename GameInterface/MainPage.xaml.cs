@@ -17,6 +17,10 @@ using GameLibrary;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.ViewManagement;
 using System.Diagnostics;
+using Windows.UI.StartScreen;
+using System.Threading.Tasks;
+using Windows.Graphics.Display;
+using Windows.UI;
 
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -34,13 +38,15 @@ namespace GameInterface
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private LevelData levelData = new LevelData();
+        private LevelData levelData;
         private static DispatcherTimer gameTimer; // timer for repositioning player
         private static Player player;
         private static GamePiece earth;
-        private static Double boostVelocity = .3;
-        private static int Level = 1;
-        private static double gravity = .1;
+        private static Double boostVelocity = .5;
+        private static int Level = 0;
+        private static double gravity = .3;
+        private static List<GamePiece> asteroidsOnScreen = new List<GamePiece>(); //keep track of asteroids that are on screen so we can check collision
+        private static List<Star> starsOnScreen = new List<Star>(); //keep track of the stars on screen
 
         //i need the ability to adjust x and y velocity at the same time (two different keys pressed at same time)
         //i'll track the pressed keys in here
@@ -58,9 +64,15 @@ namespace GameInterface
             };
             Window.Current.CoreWindow.KeyDown += CoreWindow_KeyDown;
             Window.Current.CoreWindow.KeyUp += CoreWindow_KeyUp;
+            
+            //load the leveldata
+            levelData = new LevelData();
 
             player = InitializePlayer("player", 30, 0, 570); //create the player piece
             earth = CreatePiece("earth", 30, 570, 0); // create the collectable
+            
+            //load the title screen
+            LoadLevel(Level);
 
             // Initialize and start the game loop timer
             gameTimer = new DispatcherTimer();
@@ -68,8 +80,6 @@ namespace GameInterface
             gameTimer.Tick += GameTimer_Tick;
             gameTimer.Start();
 
-            //load the first level
-            LoadLevel(Level);
         }
         
 
@@ -95,41 +105,31 @@ namespace GameInterface
 
             player.Reposition();           // Update player position
 
-
-            // Check for collision between player and earth
-            // Define bounding rectangles for player and earth
-            Rect playerRect = new Rect(
-                player.Location.Left,
-                player.Location.Top,
-                player.onScreen.Width,
-                player.onScreen.Height
-            );
-            Rect earthRect = new Rect(
-                earth.Location.Left,
-                earth.Location.Top,
-                earth.onScreen.Width, 
-                earth.onScreen.Height
-            );
-
-            // Check for intersection between the two rectangles
-            if (IntersectsWith(playerRect, earthRect))
+            //check if player hit asteroid
+            if(CheckAsteroidCollided())
             {
-                gridMain.Background = new SolidColorBrush(Windows.UI.Colors.White);
-                NextLevel();
+                GameOver();
+                return;
             }
-            else
+
+            //check if player made it to earth and collected all stars
+            if (CheckEarthCollided() && starsOnScreen.Where<Star>((s) => s.isCollected).Count() == starsOnScreen.Count() && Level != 9)
             {
-                gridMain.Background = new SolidColorBrush(Windows.UI.Colors.Black);
+                Level++;
+                NewLevel(Level);
+                return;
             }
+
+            CheckStarCollided();
+
         }
         #endregion
 
         #region LoadNextLevel
         //after reaching earth load new level
-        private void NextLevel()
+        private async Task NewLevel(int lvl)
         {
-            Level++;
-            txtLevel.Text = $"Level: {Level}";
+            txtLevel.Text = $"Level: {lvl}";
             //put the player back at bottom left
             player.objectMargins.Left = 0;
             player.objectMargins.Top = 570;
@@ -138,13 +138,15 @@ namespace GameInterface
             player.yVelocity = 0;
             pressedKeys.Clear();
             //set up game screen
-            RemoveOldLevel();
-            LoadLevel(Level);
+            await RemoveOldLevelAsync();
+            LoadLevel(lvl);
         }
 
-        private void RemoveOldLevel()
+        private async Task RemoveOldLevelAsync()
         {
-            // Iterate through the children in the grid and remove asteroids
+            // Create a list to store elements that need to be removed
+            var elementsToRemove = new List<UIElement>();
+
             foreach (var child in gridMain.Children)
             {
                 if (child is FrameworkElement element)
@@ -152,14 +154,76 @@ namespace GameInterface
                     // Check if the element is not the player or earth or the level display
                     if (element != player.onScreen && element != earth.onScreen && element != txtLevel)
                     {
-                        gridMain.Children.Remove(element);
+                        elementsToRemove.Add(element); // Mark for removal
                     }
                 }
             }
+
+            // Remove marked elements from the grid
+            foreach (var element in elementsToRemove)
+            {
+                await Task.Delay(1); // small delay
+                gridMain.Children.Remove(element);
+            }
+
+            asteroidsOnScreen.Clear();
+            starsOnScreen.Clear();
         }
 
         private void LoadLevel(int levelNumber)
         {
+            //start screen
+            //win condition
+            if (levelNumber == 0)
+            {
+                txtLevel.Text = "";
+                // Create a TextBlock for the "YOU WIN!" message
+                TextBlock introText = new TextBlock();
+                introText.Text = "INVASION \n Collect enough starpower and then invade Earth! \n Fly to Earth using your spacebar, & left/right arrowkeys to start game.";
+                introText.FontSize = 14;  // Set font size
+                introText.HorizontalAlignment = HorizontalAlignment.Center;
+                introText.VerticalAlignment = VerticalAlignment.Center;
+                introText.Foreground = new SolidColorBrush(Colors.White);  // You can change the color
+
+
+                // Add the TextBlock and Button to the grid
+                gridMain.Children.Add(introText);
+            }
+            //win condition
+            if (levelNumber == 9)
+            {
+                txtLevel.Text = "";
+                // Create a TextBlock for the "YOU WIN!" message
+                TextBlock winText = new TextBlock();
+                winText.Text = "YOU WIN!";
+                winText.FontSize = 48;  // Set font size
+                winText.HorizontalAlignment = HorizontalAlignment.Center;
+                winText.VerticalAlignment = VerticalAlignment.Center;
+                winText.Foreground = new SolidColorBrush(Colors.White);  // You can change the color
+
+                // Create a Button for "Play again"
+                Button playAgainButton = new Button();
+                playAgainButton.Content = "Play Again";
+                playAgainButton.Background = new SolidColorBrush(Colors.White);
+                playAgainButton.BorderBrush = new SolidColorBrush(Colors.White);
+                playAgainButton.Width = 200;
+                playAgainButton.Height = 50;
+                playAgainButton.HorizontalAlignment = HorizontalAlignment.Center;
+                playAgainButton.VerticalAlignment = VerticalAlignment.Center;
+                playAgainButton.Margin = new Thickness(0, 150, 0, 0);  // Set margin to move it below the text
+
+                // Add click event handler for the Play Again button
+                playAgainButton.Click += (sender, args) =>
+                {
+                    // Reset the level to 1 and load level 1
+                    Level = 1;
+                    NewLevel(Level); 
+                };
+
+                // Add the TextBlock and Button to the grid
+                gridMain.Children.Add(winText);
+                gridMain.Children.Add(playAgainButton);
+            }
             if (levelData.Levels.TryGetValue(levelNumber, out var levelInfo))
             {
                 // Load stars
@@ -170,7 +234,7 @@ namespace GameInterface
                         int size = star["size"];
                         int left = star["left"];
                         int top = star["top"];
-                        CreatePiece("star", size, left, top);
+                        starsOnScreen.Add(CreateStar("star", size, left, top));
                     }
                 }
 
@@ -182,10 +246,20 @@ namespace GameInterface
                         int size = asteroid["size"];
                         int left = asteroid["left"];
                         int top = asteroid["top"];
-                        CreatePiece("asteroid", size, left, top);
+                        asteroidsOnScreen.Add(CreatePiece("asteroid", size, left, top));
                     }
                 }
+
+                //update the stars collected text
+                txtLevel.Text += $" | 0 / {starsOnScreen.Count()}";
+
             }
+        }
+
+        private void GameOver()
+        {
+            NewLevel(Level);
+
         }
 
         #endregion
@@ -197,6 +271,95 @@ namespace GameInterface
                    rect1.Right > rect2.Left &&
                    rect1.Top < rect2.Bottom &&
                    rect1.Bottom > rect2.Top;
+        }
+
+        //loop through the asteroidsOnScreen and see if player is touching
+        private bool CheckEarthCollided()
+        {
+            // Define bounding rectangles for player and earth
+            Rect playerRect = new Rect(
+                player.Location.Left,
+                player.Location.Top,
+                player.onScreen.Width,
+                player.onScreen.Height
+            );
+            Rect earthRect = new Rect(
+                earth.Location.Left,
+                earth.Location.Top,
+                earth.onScreen.Width,
+                earth.onScreen.Height
+            );
+
+            // Check for intersection between the two rectangles
+            if (IntersectsWith(playerRect, earthRect))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool CheckAsteroidCollided()
+        {
+            Rect playerRect = new Rect(
+                player.Location.Left,
+                player.Location.Top,
+                player.onScreen.Width,
+                player.onScreen.Height - player.onScreen.Height * .3
+            );
+
+            foreach (GamePiece a in asteroidsOnScreen)
+            {
+                Rect asteroidRect = new Rect(
+                    a.Location.Left + a.onScreen.Width * .2,
+                    a.Location.Top + a.onScreen.Height * .15,
+                    a.onScreen.Width - a.onScreen.Width * .4,
+                    a.onScreen.Height - a.onScreen.Height * .6 
+                );
+
+                //check collision
+                if (IntersectsWith(playerRect, asteroidRect))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool CheckStarCollided()
+        {
+            Rect playerRect = new Rect(
+                player.Location.Left,
+                player.Location.Top,
+                player.onScreen.Width,
+                player.onScreen.Height
+            );
+
+            foreach (Star s in starsOnScreen)
+            {
+                if(s.isCollected)
+                {
+                    continue;
+                }
+
+                Rect starRect = new Rect(
+                    s.Location.Left,
+                    s.Location.Top,
+                    s.onScreen.Width,
+                    s.onScreen.Height
+                );
+
+                //check collision
+                if (IntersectsWith(playerRect, starRect))
+                {
+                    s.isCollected = true;
+                    s.onScreen.Visibility = Visibility.Collapsed;
+                    txtLevel.Text = $"Level: {Level} | {starsOnScreen.Where<Star>((st) => st.isCollected).Count()} / {starsOnScreen.Count()}";
+                }
+            }
+
+            return false;
         }
 
         #endregion
@@ -227,6 +390,22 @@ namespace GameInterface
             gridMain.Children.Add(img);
 
             return new GamePiece(img);
+        }
+
+        private Star CreateStar(string imgSrc, int size, int left, int top)
+        {
+            Image img = new Image();
+            img.Source = new BitmapImage(new Uri($"ms-appx:///Assets/{imgSrc}.png"));
+            img.Width = size;
+            img.Height = size;
+            img.Name = $"img{imgSrc}{left}{top}";
+            img.Margin = new Thickness(left, top, 0, 0);
+            img.VerticalAlignment = VerticalAlignment.Top;
+            img.HorizontalAlignment = HorizontalAlignment.Left;
+
+            gridMain.Children.Add(img);
+
+            return new Star(img);
         }
 
         private Player InitializePlayer(string imgSrc, int size, int left, int top)
