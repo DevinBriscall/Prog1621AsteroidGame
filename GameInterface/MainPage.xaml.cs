@@ -38,7 +38,7 @@ namespace GameInterface
         private static Player player; //the spaceship
         private static GamePiece earth;
         private static Double boostVelocity = .5; // when holding spacebar how fast does y velocity increase?
-        private static int Level = 8; 
+        private static int Level = 0; 
         private static double gravity = .3; //at what rate does gravity decrease player y velocity
         private static List<GamePiece> asteroidsOnScreen = new List<GamePiece>(); //keep track of asteroids that are on screen so we can check collision
         private static List<Star> starsOnScreen = new List<Star>(); //keep track of the stars on screen so we can track collected
