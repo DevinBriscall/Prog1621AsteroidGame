@@ -37,7 +37,7 @@ namespace GameLibrary
             time = 0;
         }
 
-        public static async Task SaveScoreAsync()
+        public static async Task<bool> SaveScoreAsync()
         {
             try
             {
@@ -50,12 +50,15 @@ namespace GameLibrary
                     StorageFolder localFolder = ApplicationData.Current.LocalFolder;
                     StorageFile highScoreFile = await localFolder.CreateFileAsync(HighScoreFileName, CreationCollisionOption.ReplaceExisting);
                     await FileIO.WriteTextAsync(highScoreFile, time.ToString());
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error saving score: {ex.Message}");
             }
+
+            return false;
         }
 
         public static async Task<double> LoadHighScoreAsync()

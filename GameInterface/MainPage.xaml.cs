@@ -192,13 +192,13 @@ namespace GameInterface
             else if (levelNumber == 9)
             {
                 ScoreKeeping.Stop();
-                await ScoreKeeping.SaveScoreAsync();
+                bool newHighscore = await ScoreKeeping.SaveScoreAsync();
                 UpdateHighScoreText();
                 ScoreKeeping.Reset();
                 txtLevel.Text = "";
                 // Create a TextBlock for the "YOU WIN!" message
                 TextBlock winText = new TextBlock();
-                winText.Text = "YOU WIN!";
+                winText.Text = newHighscore ? "NEW HIGHSCORE!!!" : "YOU WIN!";
                 winText.FontSize = 48;  // Set font size
                 winText.HorizontalAlignment = HorizontalAlignment.Center;
                 winText.VerticalAlignment = VerticalAlignment.Center;
