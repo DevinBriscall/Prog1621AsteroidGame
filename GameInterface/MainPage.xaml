@@ -10,5 +10,7 @@
 
     <Grid Background="Black" x:Name="gridMain" VerticalAlignment="Top" HorizontalAlignment="Left" Width="600" Height="600">
         <TextBlock Text="Level 1" Name="txtLevel" Foreground="White" />
+        <TextBlock Text="Your Time: 0s" Margin="0,20,0,0" Name="txtTime" Foreground="White" />
+        <TextBlock Text="Highscore: " Margin="0,40,0,0" Name="txtHighscore" Foreground="White" />
     </Grid>
 </Page>

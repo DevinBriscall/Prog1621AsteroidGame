@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace GameLibrary
 {
+
+    /// <summary>
+    /// contains all the stars and asteroids that will be drawn to screen
+    /// </summary>
     public class LevelData
     {
         public Dictionary<int, Dictionary<string, List<Dictionary<string, int>>>> Levels { get; private set; }

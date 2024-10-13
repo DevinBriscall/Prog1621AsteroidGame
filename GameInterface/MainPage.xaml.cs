@@ -22,31 +22,25 @@ using System.Threading.Tasks;
 using Windows.Graphics.Display;
 using Windows.UI;
 
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
-
 /* UWP Game Template
  * Created By: Melissa VanderLely
- * Modified By:  
+ * Modified By:  Devin Briscall
  */
 
 
 namespace GameInterface
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainPage : Page
     {
-        private LevelData levelData;
-        private static DispatcherTimer gameTimer; // timer for repositioning player
-        private static Player player;
+        private LevelData levelData; //instance of levelData that contains collections for what to draw for each level
+        private static DispatcherTimer gameLoopTimer; // timer for repositioning player
+        private static Player player; //the spaceship
         private static GamePiece earth;
-        private static Double boostVelocity = .5;
-        private static int Level = 0;
-        private static double gravity = .3;
+        private static Double boostVelocity = .5; // when holding spacebar how fast does y velocity increase?
+        private static int Level = 0; //set to level 9 to see win screen
+        private static double gravity = .3; //at what rate does gravity decrease player y velocity
         private static List<GamePiece> asteroidsOnScreen = new List<GamePiece>(); //keep track of asteroids that are on screen so we can check collision
-        private static List<Star> starsOnScreen = new List<Star>(); //keep track of the stars on screen
+        private static List<Star> starsOnScreen = new List<Star>(); //keep track of the stars on screen so we can track collected
 
         //i need the ability to adjust x and y velocity at the same time (two different keys pressed at same time)
         //i'll track the pressed keys in here
@@ -75,19 +69,23 @@ namespace GameInterface
             LoadLevel(Level);
 
             // Initialize and start the game loop timer
-            gameTimer = new DispatcherTimer();
-            gameTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
-            gameTimer.Tick += GameTimer_Tick;
-            gameTimer.Start();
+            gameLoopTimer = new DispatcherTimer();
+            gameLoopTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
+            gameLoopTimer.Tick += GameLoopTimer_Tick;
+            gameLoopTimer.Start();
 
+            //set up the scorekeeping
+            UpdateHighScoreText();
         }
         
 
         #region GameLoop (things that happen every frame)
         // This method is called on each tick of the timer
-        private void GameTimer_Tick(object sender, object e)
+        private void GameLoopTimer_Tick(object sender, object e)
         {
             player.ApplyGravity(gravity);  // Apply gravity each frame
+            //update the timer
+            txtTime.Text = $"Your time: {ScoreKeeping.Time}";
 
             //Adjust the player velocities based on pressedKeys
             if (pressedKeys.Contains(Windows.System.VirtualKey.Space))
@@ -146,13 +144,14 @@ namespace GameInterface
         {
             // Create a list to store elements that need to be removed
             var elementsToRemove = new List<UIElement>();
+            List<UIElement> elementsToKeep = new List<UIElement>() { player.onScreen, earth.onScreen, txtLevel, txtHighscore, txtTime};
 
             foreach (var child in gridMain.Children)
             {
                 if (child is FrameworkElement element)
                 {
                     // Check if the element is not the player or earth or the level display
-                    if (element != player.onScreen && element != earth.onScreen && element != txtLevel)
+                    if (!elementsToKeep.Contains(element))
                     {
                         elementsToRemove.Add(element); // Mark for removal
                     }
@@ -170,28 +169,32 @@ namespace GameInterface
             starsOnScreen.Clear();
         }
 
-        private void LoadLevel(int levelNumber)
+        private async void LoadLevel(int levelNumber)
         {
             //start screen
-            //win condition
+ 
             if (levelNumber == 0)
             {
                 txtLevel.Text = "";
-                // Create a TextBlock for the "YOU WIN!" message
+                // Create a TextBlock for the help message
                 TextBlock introText = new TextBlock();
-                introText.Text = "INVASION \n Collect enough starpower and then invade Earth! \n Fly to Earth using your spacebar, & left/right arrowkeys to start game.";
+                introText.Text = "INVASION \n Collect enough starpower and then invade Earth! \n Fly to Earth by holding your spacebar, & using left/right arrowkeys to start game.";
                 introText.FontSize = 14;  // Set font size
                 introText.HorizontalAlignment = HorizontalAlignment.Center;
                 introText.VerticalAlignment = VerticalAlignment.Center;
-                introText.Foreground = new SolidColorBrush(Colors.White);  // You can change the color
+                introText.Foreground = new SolidColorBrush(Colors.White);
 
 
-                // Add the TextBlock and Button to the grid
+                // Add the TextBlock to the grid
                 gridMain.Children.Add(introText);
             }
             //win condition
-            if (levelNumber == 9)
+            else if (levelNumber == 9)
             {
+                ScoreKeeping.Stop();
+                await ScoreKeeping.SaveScoreAsync();
+                UpdateHighScoreText();
+                ScoreKeeping.Reset();
                 txtLevel.Text = "";
                 // Create a TextBlock for the "YOU WIN!" message
                 TextBlock winText = new TextBlock();
@@ -199,7 +202,7 @@ namespace GameInterface
                 winText.FontSize = 48;  // Set font size
                 winText.HorizontalAlignment = HorizontalAlignment.Center;
                 winText.VerticalAlignment = VerticalAlignment.Center;
-                winText.Foreground = new SolidColorBrush(Colors.White);  // You can change the color
+                winText.Foreground = new SolidColorBrush(Colors.White); 
 
                 // Create a Button for "Play again"
                 Button playAgainButton = new Button();
@@ -210,7 +213,7 @@ namespace GameInterface
                 playAgainButton.Height = 50;
                 playAgainButton.HorizontalAlignment = HorizontalAlignment.Center;
                 playAgainButton.VerticalAlignment = VerticalAlignment.Center;
-                playAgainButton.Margin = new Thickness(0, 150, 0, 0);  // Set margin to move it below the text
+                playAgainButton.Margin = new Thickness(0, 150, 0, 0);
 
                 // Add click event handler for the Play Again button
                 playAgainButton.Click += (sender, args) =>
@@ -224,8 +227,16 @@ namespace GameInterface
                 gridMain.Children.Add(winText);
                 gridMain.Children.Add(playAgainButton);
             }
-            if (levelData.Levels.TryGetValue(levelNumber, out var levelInfo))
+
+            //if it wasn't the start screen and wasn't the win screen, try loading the level to be played
+            else if (levelData.Levels.TryGetValue(levelNumber, out var levelInfo))
             {
+                //start the timer on lvl 1
+                if (levelNumber == 1)
+                {
+                    ScoreKeeping.Start();
+                }
+                
                 // Load stars
                 if (levelInfo.TryGetValue("stars", out var stars))
                 {
@@ -265,6 +276,8 @@ namespace GameInterface
         #endregion
 
         #region Rectangle Collision Detection
+
+        //method for checking collision between two rectangles
         public static bool IntersectsWith(Rect rect1, Rect rect2)
         {
             return rect1.Left < rect2.Right &&
@@ -273,7 +286,7 @@ namespace GameInterface
                    rect1.Bottom > rect2.Top;
         }
 
-        //loop through the asteroidsOnScreen and see if player is touching
+        //check if player made it to earth
         private bool CheckEarthCollided()
         {
             // Define bounding rectangles for player and earth
@@ -298,7 +311,7 @@ namespace GameInterface
 
             return false;
         }
-
+        //loop through the asteroidsOnScreen and see if player is touching
         private bool CheckAsteroidCollided()
         {
             Rect playerRect = new Rect(
@@ -327,6 +340,7 @@ namespace GameInterface
             return false;
         }
 
+        //loop through the starsOnScreen and see if player is touching
         private bool CheckStarCollided()
         {
             Rect playerRect = new Rect(
@@ -356,6 +370,7 @@ namespace GameInterface
                     s.isCollected = true;
                     s.onScreen.Visibility = Visibility.Collapsed;
                     txtLevel.Text = $"Level: {Level} | {starsOnScreen.Where<Star>((st) => st.isCollected).Count()} / {starsOnScreen.Count()}";
+                    txtLevel.Text += starsOnScreen.All<Star>((st) => st.isCollected) ? " INVADE EARTH" : "";
                 }
             }
 
@@ -427,6 +442,7 @@ namespace GameInterface
         #endregion
 
         #region Handle Key Presses
+        //when a key is pressed add it to our collection of pressed keys
         private async void CoreWindow_KeyDown(object sender, Windows.UI.Core.KeyEventArgs e)
         {
             //add the key pressed to the pressed key list
@@ -435,7 +451,7 @@ namespace GameInterface
                 pressedKeys.Add(e.VirtualKey);
             }
         }
-
+        //when a key is released remove it from our collection of pressed keys
         private void CoreWindow_KeyUp(object sender, Windows.UI.Core.KeyEventArgs e)
         {
             //remove the released key from the pressed keys list
@@ -445,6 +461,14 @@ namespace GameInterface
             }
         }
 
+        #endregion
+
+        #region Scorekeeping
+        public async void UpdateHighScoreText()
+        {
+            double highScore = await ScoreKeeping.LoadHighScoreAsync();
+            txtHighscore.Text = highScore == 0 ? "Highscore: N/A" : $"Highscore: {Math.Floor(highScore / 60)}:{(highScore % 60):00}";
+        }
         #endregion
 
     }

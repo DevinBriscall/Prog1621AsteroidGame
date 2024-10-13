@@ -9,6 +9,9 @@ using Windows.UI.Xaml.Controls;
 
 namespace GameLibrary
 {
+    /// <summary>
+    /// this is the player class that has methods to handle movement
+    /// </summary>
     public class Player : GamePiece
     {
         private static double maxVelocity = 6;
@@ -44,6 +47,7 @@ namespace GameLibrary
             }
         }
 
+        //move character left/right
         public bool AdjustXVelocity(Windows.System.VirtualKey direction)
         {
             switch (direction)
