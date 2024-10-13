@@ -29,7 +29,10 @@ namespace GameLibrary
         public static void Stop()
         {
             //stop the timer
-            gameTimeTimer.Stop();
+            if (gameTimeTimer != null)
+            {
+                gameTimeTimer.Stop();
+            }
         }
 
         public static void Reset() 

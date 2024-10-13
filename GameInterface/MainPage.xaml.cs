@@ -21,6 +21,7 @@ using Windows.UI.StartScreen;
 using System.Threading.Tasks;
 using Windows.Graphics.Display;
 using Windows.UI;
+using Windows.ApplicationModel.Core;
 
 /* UWP Game Template
  * Created By: Melissa VanderLely
@@ -37,7 +38,7 @@ namespace GameInterface
         private static Player player; //the spaceship
         private static GamePiece earth;
         private static Double boostVelocity = .5; // when holding spacebar how fast does y velocity increase?
-        private static int Level = 0; //set to level 9 to see win screen
+        private static int Level = 8; 
         private static double gravity = .3; //at what rate does gravity decrease player y velocity
         private static List<GamePiece> asteroidsOnScreen = new List<GamePiece>(); //keep track of asteroids that are on screen so we can check collision
         private static List<Star> starsOnScreen = new List<Star>(); //keep track of the stars on screen so we can track collected
@@ -208,12 +209,21 @@ namespace GameInterface
                 Button playAgainButton = new Button();
                 playAgainButton.Content = "Play Again";
                 playAgainButton.Background = new SolidColorBrush(Colors.White);
-                playAgainButton.BorderBrush = new SolidColorBrush(Colors.White);
                 playAgainButton.Width = 200;
                 playAgainButton.Height = 50;
                 playAgainButton.HorizontalAlignment = HorizontalAlignment.Center;
                 playAgainButton.VerticalAlignment = VerticalAlignment.Center;
                 playAgainButton.Margin = new Thickness(0, 150, 0, 0);
+
+                //button to quit the game
+                Button quitButton = new Button();
+                quitButton.Content = "Quit";
+                quitButton.Background = new SolidColorBrush(Colors.Red);
+                quitButton.Width = 200;
+                quitButton.Height = 50;
+                quitButton.HorizontalAlignment = HorizontalAlignment.Center;
+                quitButton.VerticalAlignment = VerticalAlignment.Center;
+                quitButton.Margin = new Thickness(0, 350, 0, 0);
 
                 // Add click event handler for the Play Again button
                 playAgainButton.Click += (sender, args) =>
@@ -223,9 +233,15 @@ namespace GameInterface
                     NewLevel(Level); 
                 };
 
+                quitButton.Click += (sender, args) =>
+                {
+                    CoreApplication.Exit();
+                };
+
                 // Add the TextBlock and Button to the grid
                 gridMain.Children.Add(winText);
                 gridMain.Children.Add(playAgainButton);
+                gridMain.Children.Add(quitButton);
             }
 
             //if it wasn't the start screen and wasn't the win screen, try loading the level to be played
