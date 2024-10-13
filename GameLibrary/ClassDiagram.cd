@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="GameLibrary.GamePiece">
+    <Position X="2.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAEIAAAAAAAAAAAAAAAAAAAAAAIA=</HashCode>
+      <FileName>GamePiece.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GameLibrary.LevelData">
+    <Position X="6.5" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAA=</HashCode>
+      <FileName>LevelData.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GameLibrary.Player">
+    <Position X="0.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAAAQAAAAAAAAAAAAAAAAAACDARAAAAAAAAA=</HashCode>
+      <FileName>Player.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GameLibrary.ScoreKeeping">
+    <Position X="6.5" Y="3" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAiAABAACAAAAEAAAgAAAAAAAIAAAAAAAAQA=</HashCode>
+      <FileName>ScoreKeeping.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GameLibrary.Star">
+    <Position X="4.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Star.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
