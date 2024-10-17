@@ -17,11 +17,25 @@ namespace GameLibrary
         private static double maxVelocity = 6;
         public double yVelocity; // use this to boost/fall
         public double xVelocity; // right/left movement
+        public int lives;
 
         public Player(Image img) : base(img)
         {
             yVelocity = 0;
             xVelocity = 0;
+            lives = 3;
+        }
+
+        //returns true if player is still alive
+        public bool RemoveLife()
+        {
+            this.lives--;
+            return lives > 0;
+        }
+
+        public void ResetLife()
+        {
+            this.lives = 3;
         }
         
 

@@ -12,5 +12,6 @@
         <TextBlock Text="Level 1" Name="txtLevel" Foreground="White" />
         <TextBlock Text="Your Time: 0s" Margin="0,20,0,0" Name="txtTime" Foreground="White" />
         <TextBlock Text="Highscore: " Margin="0,40,0,0" Name="txtHighscore" Foreground="White" />
+        <TextBlock Text="Lives: " Margin="500,580,0,0" Name="txtLives" Foreground="White" />
     </Grid>
 </Page>

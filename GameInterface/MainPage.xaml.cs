@@ -107,7 +107,9 @@ namespace GameInterface
             //check if player hit asteroid
             if(CheckAsteroidCollided())
             {
-                GameOver();
+                bool isAlive = player.RemoveLife();
+                if (isAlive) NewLevel(Level);
+                else GameOver();
                 return;
             }
 
@@ -145,7 +147,7 @@ namespace GameInterface
         {
             // Create a list to store elements that need to be removed
             var elementsToRemove = new List<UIElement>();
-            List<UIElement> elementsToKeep = new List<UIElement>() { player.onScreen, earth.onScreen, txtLevel, txtHighscore, txtTime};
+            List<UIElement> elementsToKeep = new List<UIElement>() { player.onScreen, earth.onScreen, txtLevel, txtHighscore, txtTime, txtLives};
 
             foreach (var child in gridMain.Children)
             {
@@ -177,6 +179,7 @@ namespace GameInterface
             if (levelNumber == 0)
             {
                 txtLevel.Text = "";
+                txtLives.Text = "";
                 // Create a TextBlock for the help message
                 TextBlock introText = new TextBlock();
                 introText.Text = "INVASION \n Collect enough starpower and then invade Earth! \n Fly to Earth by holding your spacebar, & using left/right arrowkeys to start game.";
@@ -192,11 +195,13 @@ namespace GameInterface
             //win condition
             else if (levelNumber == 9)
             {
+                player.ResetLife();
                 ScoreKeeping.Stop();
                 bool newHighscore = await ScoreKeeping.SaveScoreAsync();
                 UpdateHighScoreText();
                 ScoreKeeping.Reset();
                 txtLevel.Text = "";
+                txtLives.Text = "";
                 // Create a TextBlock for the "YOU WIN!" message
                 TextBlock winText = new TextBlock();
                 winText.Text = newHighscore ? "NEW HIGHSCORE!!!" : "YOU WIN!";
@@ -243,12 +248,65 @@ namespace GameInterface
                 gridMain.Children.Add(playAgainButton);
                 gridMain.Children.Add(quitButton);
             }
+            //losing condition
+            else if(levelNumber == -1)
+            {
+                ScoreKeeping.Stop();
+                ScoreKeeping.Reset();
+                txtLevel.Text = "";
+                txtLives.Text = "";
+                // Create a TextBlock for the "GAME OVER" message
+                TextBlock gameOverText = new TextBlock();
+                gameOverText.Text = "GAME OVER :(";
+                gameOverText.FontSize = 48;  // Set font size
+                gameOverText.HorizontalAlignment = HorizontalAlignment.Center;
+                gameOverText.VerticalAlignment = VerticalAlignment.Center;
+                gameOverText.Foreground = new SolidColorBrush(Colors.White);
 
-            //if it wasn't the start screen and wasn't the win screen, try loading the level to be played
+                // Create a Button for "Play again"
+                Button playAgainButton = new Button();
+                playAgainButton.Content = "Play Again";
+                playAgainButton.Background = new SolidColorBrush(Colors.White);
+                playAgainButton.Width = 200;
+                playAgainButton.Height = 50;
+                playAgainButton.HorizontalAlignment = HorizontalAlignment.Center;
+                playAgainButton.VerticalAlignment = VerticalAlignment.Center;
+                playAgainButton.Margin = new Thickness(0, 150, 0, 0);
+
+                //button to quit the game
+                Button quitButton = new Button();
+                quitButton.Content = "Quit";
+                quitButton.Background = new SolidColorBrush(Colors.Red);
+                quitButton.Width = 200;
+                quitButton.Height = 50;
+                quitButton.HorizontalAlignment = HorizontalAlignment.Center;
+                quitButton.VerticalAlignment = VerticalAlignment.Center;
+                quitButton.Margin = new Thickness(0, 350, 0, 0);
+
+                // Add click event handler for the Play Again button
+                playAgainButton.Click += (sender, args) =>
+                {
+                    // Reset the level to 1 and load level 1
+                    Level = 1;
+                    NewLevel(Level);
+                };
+
+                quitButton.Click += (sender, args) =>
+                {
+                    CoreApplication.Exit();
+                };
+
+                // Add the TextBlock and Button to the grid
+                gridMain.Children.Add(gameOverText);
+                gridMain.Children.Add(playAgainButton);
+                gridMain.Children.Add(quitButton);
+            }
+
+            //if it wasn't the start screen and wasn't the win screen and wasn't game over, try loading the level to be played
             else if (levelData.Levels.TryGetValue(levelNumber, out var levelInfo))
             {
                 //start the timer on lvl 1
-                if (levelNumber == 1)
+                if (levelNumber == 1 && !ScoreKeeping.IsEnabled())
                 {
                     ScoreKeeping.Start();
                 }
@@ -279,12 +337,16 @@ namespace GameInterface
 
                 //update the stars collected text
                 txtLevel.Text += $" | 0 / {starsOnScreen.Count()}";
+                txtLives.Text = $"Lives: " + string.Concat(Enumerable.Repeat("<3", player.lives)); ;
+                
 
             }
         }
 
         private void GameOver()
         {
+            Level = -1;
+            player.ResetLife();
             NewLevel(Level);
 
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.UI.Xaml;
@@ -24,6 +25,18 @@ namespace GameLibrary
             gameTimeTimer.Interval = TimeSpan.FromSeconds(1);
             gameTimeTimer.Tick += (object sender, object e) => time ++;
             gameTimeTimer.Start();
+        }
+
+        //checks if the timer is enabled without giving direct access to the timer
+        public static bool IsEnabled()
+        {
+            return gameTimeTimer != null && gameTimeTimer.IsEnabled;
+        }
+
+        //checks if the timer is initialized without giving direct access to the timer
+        public static bool IsInitialized()
+        {
+            return gameTimeTimer != null;
         }
 
         public static void Stop()
